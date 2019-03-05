@@ -1,0 +1,99 @@
+# coding: utf-8
+
+# In[109]:
+
+
+from Bio import SeqIO
+import statistics 
+
+
+infile =  "/Users/carleebettler/Downloads/rosalind_bfil (5).txt"
+readfile = open(infile).read().split('\n')
+threshold = ''
+threshold = readfile[0]
+readfileNew = readfile
+#Reads in file and extracts threshold score
+
+phredscores = []
+
+for record in SeqIO.parse("/Users/carleebettler/Downloads/rosalind_bfil (5).txt", "fastq"):
+    phredscores.append(record.letter_annotations["phred_quality"])
+#Reads in and extracts phred quality scores 
+
+    
+trimForward = []
+
+trimBackward = []
+
+for i in range(len(phredscores)):
+    for j in range(len(phredscores[i])):
+        if(int(phredscores[i][j])< int(threshold)):
+            continue
+        else:
+            trimForward.append(j)
+            break
+#Finds starting index of when phredscores are less than threshold, appends to trimForward
+
+revPhredscores = []
+
+for i in range(len(phredscores)):
+    revPhredscores.append(phredscores[i][::-1])
+#Reverses phrescores to make it easier to find backward index
+    
+
+for i in range(len(revPhredscores)):
+    for j in range(len(revPhredscores[i])):
+        if(int(revPhredscores[i][j])< int(threshold)):
+            continue
+        else:
+            trimBackward.append(j)
+            break
+#Finds backward indices where phredscores are less than threshold, but treats them like forward indices
+    
+trimBackwardFromEnd = []
+
+for i in range(len(trimBackward)):
+    trimBackwardFromEnd.append(len(phredscores[i])-trimBackward[i])
+#Makes backward indices actual backward indices 
+
+fastqSeqs = []
+    
+for i in range(len(readfileNew)):
+    if(readfileNew[i]=="+"):
+        fastqSeqs.append(readfileNew[i+1])
+#Creates list of fastq sequences
+        
+fastqSeqsTrimmed = []
+        
+for i in range(len(fastqSeqs)):
+    fastqSeqsTrimmed.append(fastqSeqs[i][trimForward[i]:trimBackwardFromEnd[i]])
+#Creates list of trimmed fastq sequences 
+
+
+nucs = []
+nucsTrimmed = []
+for i in range(2,len(readfileNew),4):
+    nucs.append(readfileNew[i])
+#Creates list of nucleotide sequences
+    
+for i in range(len(nucs)):
+    nucsTrimmed.append(nucs[i][trimForward[i]:trimBackwardFromEnd[i]])
+
+            
+count = 0
+            
+for i in range(len(readfileNew)):
+    if(readfileNew[i]=="+"):
+        readfileNew[i-1] = nucsTrimmed[count]
+        readfileNew[i+1]= fastqSeqsTrimmed[count]
+        count += 1
+#Adds trimmed fastq and nuc sequences to replace not trimmed fastq and nucs sequences
+        
+
+out = open('/Users/carleebettler/Downloads/rosalind_baseFiltration_ans6.txt','w')
+
+for i in range(1,len(readfileNew)):
+    out.write(str(readfileNew[i])+'\n')              
+#Writes/creates a file on my computer that contains my final answer
+
+out.close()
